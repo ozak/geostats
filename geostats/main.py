@@ -48,151 +48,128 @@ except:
     print('context has already been set')
 n_procs = os.cpu_count()
 
-# Determine drive where other data is located
-try:
-    os.listdir("/Volumes/Mirror RAID")
-    drv="/Volumes/Backup/MacPro/Mirror RAID/"
-except:
-    drv="/Users/bizcocho/Desktop/"
-
-# Fix paths of Ethnic, country and coastline Shapefiles
-# Although we include the WGS84 versions, we will only use the projected ones, in order to have everything
-if sys.platform=='darwin':
-    path = os.getenv('HOME') + '/LatexMeGD/CulturalDistance/'
-    pathcyl=path + '/data/GIS/cyl/'
-    pathcntry=path + 'data/GIS/GMI/'
-    pathcntrycyl=path + 'data/GIS/GMI/cyl/'
-    pathout=path + 'data/GIS/data/'
-    pathgis=path + 'data/GIS/'
-    pathmeasures = {'Suitability' : pathgis + 'Ramankutty/',
-                    'Lights' : '/Volumes/My Book/GIS/Lights/tifs/',
-                    'Lights2' : '/Volumes/My Book/GIS/Lights/tifs/',
-                    'Elevation' : drv + '/Geographical_Index/GIS/GLOBE/',
-                    'Elevation2' : drv + '/Geographical_Index/GIS/GLOBE/',
-                    'RIX' : drv + '/Geographical_Index/GIS/RIX/',
-                    'RIX2' : drv + '/Geographical_Index/GIS/RIX/',
-                    'CRU' : drv + '/Geographical_Index/DataOthers/CRU/tif/',
-                    'CropsYield' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/yield/rain_fed/',
-                    'CSICrops' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/energyyield/rain_fed/',
-                    'CSI' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/CSI/',
-                    'CSIWater' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/CSI_water/',
-                    'CSICycle' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/latest/',
-                    'CSICycleExtra' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/latest/',
-                    'CSICycleWater' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/updated_water/',
-                    'CSIPlow' : drv + '/Geographical_Index/DataOthers/FAO/GAEZ/Agroclimatic/bestcropcal/plow/',
-                    'Malaria' : pathgis + 'Malaria/',
-                    'HMI' : drv + '/Geographical_Index/GIS/HMI_Diff/',
-                    'PopDensAfrica' : '/Volumes/Macintosh HD 2/GIS/UNEP/',
-                    'Popdens' : '/Volumes/My Book/GIS/GPW/popdens/',
-                    'Population' : '/Volumes/My Book/GIS/GPW/population/',
-                    'HYDE' : '/Volumes/Backup/MacPro/Macintosh HD 2/GIS/HYDE/hyde31_final/tif/',
-                    'Tsetse' : pathgis + 'Tsetse/',
-                    'Ecodiversity' : pathgis + 'Ecological_Zones/',
-                    'EcodiversityLGM' : pathgis + 'PaleoVegetation/',
-                    'Sea100' : pathcntrycyl,
-                    'Coast' : pathcntrycyl,
-                    'Inwater' : pathcntrycyl,
-                    'PerInwater' : pathcntrycyl,
-                    'FluctInwater' : pathcntrycyl,
-                    'Landscan' : '/Volumes/Backup/MacPro/Macintosh HD 2/GIS/Landscan/',
-                    'GEcon' : '/Volumes/Backup/MacPro/Macintosh HD 2/GIS/GEconRaster/',
-                    'HLD' : '/Volumes/My Book/GIS/Harmonized Light Data/light/',
-                    }
-elif sys.platform.startswith('linux'):
-    path = os.getenv('HOME') + '/LatexMe/CulturalDistance/'
-    pathcyl=path + '/data/GIS/cyl/'
-    pathcntry=path + 'data/GIS/GMI/'
-    pathcntrycyl=path + 'data/GIS/GMI/cyl/'
-    pathout=path + 'data/GIS/data/'
-    pathgis=path + 'data/GIS/'
-    drv = os.getenv('HOME') + '/DataOthers/'
-    pathmeasures = {'Suitability' : pathgis + 'Ramankutty/',
-                    'Lights' : drv + '/Lights/tifs/',
-                    'Lights2' : drv + '/Lights/tifs/',
-                    'Elevation' : drv + '/GLOBE/',
-                    'Elevation2' : drv + '/GLOBE/',
-                    'RIX' : drv + '/RIX/',
-                    'RIX2' : drv + '/RIX/',
-                    'CRU' : drv + '/CRU/tif/',
-                    'CropsYield' : drv + '/FAO/GAEZ/Agroclimatic/yield/rain_fed/',
-                    'CSICrops' : drv + '/FAO/GAEZ/Agroclimatic/energyyield/rain_fed/',
-                    'CSI' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/CSI/',
-                    'CSIWater' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/CSI_water/',
-                    'CSICycle' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/latest/',
-                    'CSICycleExtra' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/latest/',
-                    'CSICycleWater' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/updated_water/',
-                    'CSIPlow' : drv + '/FAO/GAEZ/Agroclimatic/bestcropcal/plow/',
-                    'Malaria' : pathgis + 'Malaria/',
-                    'HMI' : drv + '/HMI_Diff/',
-                    'PopDensAfrica' : drv + '/UNEP/',
-                    'Popdens' : drv + '/GPW/popdens/',
-                    'Population' : drv + '/GPW/population/',
-                    'HYDE' : drv + '/HYDE/hyde31_final/tif/',
-                    'Tsetse' : pathgis + 'Tsetse/',
-                    'Ecodiversity' : pathgis + 'Ecological_Zones/',
-                    'EcodiversityLGM' : pathgis + 'PaleoVegetation/',
-                    'Sea100' : pathcntrycyl,
-                    'Coast' : pathcntrycyl,
-                    'Inwater' : pathcntrycyl,
-                    'PerInwater' : pathcntrycyl,
-                    'FluctInwater' : pathcntrycyl,
-                    'Landscan' : drv +  '/Landscan/',
-                    'GEcon' : os.getenv('HOME')+'/LatexMe/CountryStability/data/GEconRaster/',
-                    'HLD' : drv + '/Harmonized Light Data/light/',
-}
+# Fix paths for data sources
+# We include the WGS84 (EPSG:4326) and Lanbert Cylindrical Equal Area (ESRI:54034) projections of the data.
+# In the future we may expand to have on-the-fly reprojection (part of to-do list)
+# Paths
+path = os.getenv('HOME') + '/geostats/'
+pathmeasures = {'Suitability' : path + '/Ramankutty/tifs/',
+                'Suitability2' : path + '/Ramankutty/tifs/',
+                'Lights' : path + '/Lights/tifs/',
+                'Lights2' : path + '/Lights/tifs/',
+                'Elevation' : path + '/GLOBE/tifs/',
+                'Elevation2' : path + '/GLOBE/tifs/',
+                'Elevation3' : path + '/ETOPO/tifs/',
+                'Elevation4' : path + '/ETOPO/tifs/',                
+                'RIX' : path + '/RIX/tifs/',
+                'RIX2' : path + '/RIX/tifs/',
+                'CRU' : path + '/CRU/tifs/',
+                'CRU2' : path + '/CRU/tifs/',
+                'CropsYield' : path + '/CropsYield/tifs/',
+                'CSICrops' : path + '/CSICrops/tifs/',
+                'CSI' : path + '/CSI/tifs/',
+                'CSI2' : path + '/CSI/tifs/',
+                'CSICycle' : path + '/CSICycle/tifs/',
+                'CSICycle2' : path + '/CSICycle/tifs/',
+                'CSICycleExtra' : path + '/CSICycle/tifs/',
+                'CSICycleExtra2' : path + '/CSICycle/tifs/',
+                'CSIPlow' : path + '/CSIPlow/tifs/',
+                'CSIPlow2' : path + '/CSIPlow/tifs/',
+                'Malaria' : path + '/Malaria/tifs/',
+                'Malaria2' : path + '/Malaria/tifs/',
+                'HMI' : path + '/HMI/tifs/',
+                'PopDensAfrica' : path + '/UNEP/tifs/',
+                'Popdens' : path + '/GPW/v3/popdens/',
+                'Population' : path + '/GPW/v3/population/',
+                'Population-GPWv4' : path + '/GPW/v4/population/',
+                'PopDensity-GPWv4' : path + '/GPW/v4/popdens/',
+                'HYDE' : path + '/HYDE/tifs/',
+                'Tsetse' : path + 'Tsetse/tifs/',
+                'Ecodiversity' : path + '/Ecodiversity/',
+                'EcodiversityWWF' : path + '/Ecological_Zones/WWF/',
+                'EcodiversityLGM' : path + '/PaleoVegetation/',
+                'Sea100' : path + '/Waters-Coasts/',
+                'Coast' : path + '/Waters-Coasts/',
+                'Inwater' : path + '/Waters-Coasts/',
+                'PerInwater' : path + '/Waters-Coasts/',
+                'FluctInwater' : path + '/Waters-Coasts/',
+                'Landscan' : path + '/Landscan/',
+                'GEcon' : path + '/GEconRaster/',
+                'HLD' : path + '/Harmonized Light Data/light/',
+                }
 
 # Paths to measures available for computations (if adding new measures one needs to change all places where the lists/dicts are created)
-mainmeasures = ['Suitability','Lights','Lights2','Elevation','RIX','Elevation2','RIX2','CRU','CSI', 'CSICrops', 'CropsYield',
-                'CSICycle', 'CSICycleExtra','CSIPlow','Malaria','HMI','PopDensAfrica','Popdens','Population',
-                'HYDE','Tsetse','Ecodiversity','EcodiversityLGM','Sea100','Coast',
-                'Inwater','PerInwater','FluctInwater','Landscan', 'GEcon', 'HLD']
-mainmeasures.sort()
+# Grouop measures by type, projection, etc.
 
-mainmeasuresw = ['Suitability','Lights','Lights2','Elevation','RIX','Elevation2','RIX2','CRU','CSI', 'CSICrops', 'CropsYield', 'CSIWater',
-                'CSICycle', 'CSICycleExtra', 'CSICycleWater','CSIPlow','Malaria','HMI','PopDensAfrica','Popdens','Population',
-                'HYDE','Tsetse','Ecodiversity','EcodiversityLGM','Sea100','Coast',
-                'Inwater','PerInwater','FluctInwater','Landscan', 'GEcon', 'HLD']
-mainmeasuresw.sort()
+# Define and sort main measures
+main_measures = [
+    'Suitability', 'Suitability2', 'Lights', 'Lights2', 'Elevation','Elevation3', 'RIX', 'Elevation2', 'Elevation4', 'RIX2', 
+    'CRU', 'CRU2', 'CSI', 'CSI2', 'CSICycle2', 'CSICycleExtra2', 'CSIPlow2', 
+    'CSICrops', 'CropsYield', 'CSICycle', 'CSICycleExtra', 'CSIPlow', 'Malaria', 'Malaria2', 'HMI', 
+    'PopDensAfrica', 'Popdens', 'Population', 'Population-GPWv4', 'PopDensity-GPWv4', 'HYDE', 'Tsetse', 'Ecodiversity', 'EcodiversityLGM', 
+    'Sea100', 'Coast', 'Inwater', 'PerInwater', 'FluctInwater', 'Landscan', 'GEcon', 'HLD'
+]
+main_measures.sort()
 
-wgs84measures = ['Lights2','Elevation2','RIX2','PopDensAfrica','Popdens','Population','HYDE','Landscan','CSICrops','CropsYield', 'GEcon', 'HLD']
-wgs84measures.sort()
+# Define and sort WGS84 measures
+wgs84_measures = [
+    'Suitability2', 'CRU2', 'CSI2', 'CSICycle2', 'CSICycleExtra2', 'CSIPlow2', 'Lights2', 'Elevation2', 'Elevation4', 'RIX2', 
+    'Malaria2', 'PopDensAfrica', 'Popdens', 'Population', 'HYDE', 
+    'Population-GPWv4', 'PopDensity-GPWv4', 'Landscan', 'CSICrops', 'CropsYield', 'GEcon', 'HLD'
+]
+wgs84_measures.sort()
 
-shpmeasures = ['Ecodiversity','EcodiversityLGM','Sea100','Coast','Inwater','PerInwater','FluctInwater',]
-shpmeasures.sort()
+# Define and sort shapefile measures
+shp_measures = [
+    'Ecodiversity', 'EcodiversityLGM', 'Sea100', 'Coast', 'Inwater', 'PerInwater', 'FluctInwater'
+]
+shp_measures.sort()
 
-ecodivmeasures = ['Ecodiversity','EcodiversityLGM']
-ecodivmeasures.sort()
+# Define and sort ecodiversity measures
+ecodiv_measures = ['Ecodiversity', 'EcodiversityLGM']
+ecodiv_measures.sort()
 
-ceameasures = list(set(mainmeasuresw).difference(set(wgs84measures)).difference(set(shpmeasures)))
+ceameasures = list(set(mainmeasures).difference(set(wgs84measures)).difference(set(shpmeasures)))
 ceameasures.sort()
 
 noecodivmeasures = list(set(ceameasures).difference(set(ecodivmeasures)))
 noecodivmeasures.sort()
 
-namemeasures = {'Suitability' : -7,
+# Identify how many characters need to be adjusted for correct name in each source
+namemeasures = {'Suitability' : -4,
+                'Suitability2' : -4,
                 'Lights' : 7,
                 'Lights2' : 7,
                 'Elevation' : -4,
                 'Elevation2' : -4,
+                'Elevation3' : -4,
+                'Elevation4' : -4,
                 'RIX' : -4,
                 'RIX2' : -4,
-                'CRU' : -7,
+                'CRU' : -4,
+                'CRU2' : -4,
                 'CropsYield' : -4,
                 'CSICrops' : -4,
-                'CSI' : -7,
-                'CSIWater' : -7,
-                'CSICycle' : -7,
-                'CSICycleExtra' : -7,
-                'CSICycleWater' : -7,
-                'CSIPlow' : -7,
-                'Malaria' : -7,
+                'CSI' : -4,
+                'CSI2' : -4,
+                'CSICycle' : -4,
+                'CSICycle2' : -4,
+                'CSICycleExtra' : -4,
+                'CSICycleExtra2' : -4,
+                'CSIPlow' : -4,
+                'CSIPlow2' : -4,
+                'Malaria' : -4,
+                'Malaria2' : -4,
                 'HMI' : -4,
                 'PopDensAfrica' : -4,
                 'Popdens' : -4,
                 'Population' : -4,
+                'Population-GPWv4':-4, 
+                'PopDensity-GPWv4':-4,
                 'HYDE' : -4,
                 'Tsetse' : -7,
                 'Ecodiversity' : 0,
+                'EcodiversityWWF' : 0,
                 'EcodiversityLGM' : 0,
                 'Sea100' : 0,
                 'Coast' : 0,
@@ -215,9 +192,9 @@ def GISData(myshp=pathcntrycyl + 'DCW_countriescyl.shp', adds=False):
     GISData(shp=file,[adds=adds])
     '''
     # Shape file
-    if isinstance(myshp,str):
+    if isinstance(myshp, str):
         data = gp.GeoDataFrame.from_file(myshp)
-    elif isinstance(myshp,gp.GeoDataFrame):
+    elif isinstance(myshp, gp.GeoDataFrame):
         data = myshp.copy()
     return data
 
@@ -319,6 +296,23 @@ def ecodiv_parallel(args):
         ecopolarization = 0
     return [ecodiversity, ecopolarization]
 
+def ecodivwwf_parallel(args):
+    row, idxeco = args
+    if row['ecos'] != []:
+        tarea = row['geometry'].area
+        polys = ecological.iloc[row.ecos].dissolve(by=['ECO_NAME', 'ECO_NUM', 'ECO_ID', 'ECO_SYM', 'eco_code'])
+        share = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1) / tarea
+        sharesq = share**2
+        sharesq2 = share * (1 - 2 * share)**2
+        sharesq = sharesq.sum()
+        sharesq2 = sharesq2.sum()
+        ecodiversity = 1 - sharesq
+        ecopolarization = 1 - sharesq2
+    else:
+        ecodiversity = 0
+        ecopolarization = 0
+    return [ecodiversity, ecopolarization]
+
 def ecodivLGM_parallel(args):
     row, idxeco = args
     if row['ecos'] != []:
@@ -396,6 +390,10 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
             mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
             if measure=='HLD':
                 mytiffiles=[mytiffile for mytiffile in mytiffiles if mytiffile.find('Harmonized')!=-1]
+            elif measure == 'CSICycle2':
+                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
+            elif measure == 'CSICycleExtra2':
+                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
         else:
             dfin = df
             dfin.crs = df.crs
@@ -467,8 +465,6 @@ class geostats(object):
             self.df.loc[self.df.is_valid==False, 'geometry'] = self.df.loc[self.df.is_valid==False, 'geometry'].apply(lambda x: x.buffer(0))
         if correct_wgs:
             self.dfnocyl.loc[self.dfnocyl.is_valid==False, 'geometry'] = self.dfnocyl.loc[self.dfnocyl.is_valid==False, 'geometry'].apply(lambda x: x.buffer(0))
-        #self.df.geometry = self.df.geometry.apply(lambda x: x.buffer(0))
-        #self.dfnocyl.geometry = self.dfnocyl.geometry.apply(lambda x: x.buffer(0))
         if adds:
             if self.df.geom_type.values[0].find('Polygon')!=-1:
                 self.df['area']=self.df.area/1e6
@@ -505,6 +501,8 @@ class geostats(object):
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
                 if measure == 'HMI':
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')]
+                elif measure == 'CSI':
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
                 elif measure == 'CSICycle':
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
                 elif measure == 'CSICycleExtra':
@@ -515,6 +513,12 @@ class geostats(object):
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
                 if measure=='HLD':
                     mytiffiles=[mytiffile for mytiffile in mytiffiles if mytiffile.find('Harmonized')!=-1]
+                elif measure == 'CSI2':
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
+                elif measure == 'CSICycle2':
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
+                elif measure == 'CSICycleExtra2':
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
             else:
                 dfin = self.df
                 dfin.crs = self.df.crs
@@ -530,6 +534,12 @@ class geostats(object):
                         myvar = myvar + 'cyl'
                     elif measure=='GEcon':
                         myvar = 'GE' + myvar
+                    elif measure=='Population-GPWv4':
+                        myvar = myvar.replace('population_count_', 'popc').replace('adjusted_to_2015_unwpp_country_totals_', 'adj').replace('rev11_', '').replace('_30_sec', '').replace('_', '')
+                    elif measure=='PopDensity-GPWv4':
+                        myvar = myvar.replace('population_density_', 'popd').replace('adjusted_to_2015_unwpp_country_totals_', 'adj').replace('rev11_', '').replace('_30_sec', '').replace('_', '')
+                    elif measure=='Landscan':
+                        myvar = myvar.replace('landscan', 'ls').replace('-global-', '')
                     elif measure=='HLD':
                         myvar = 'HLD' + re.findall(r'\d+', i)[0]
                     # Multiprocessing of stats
@@ -682,6 +692,44 @@ class geostats(object):
 
                     # Merge ecodiversity and ecopolarization columns from dfin into self.df
                     self.df = pd.merge(self.df, dfin[['ecodiversity', 'ecopolarization']], left_index=True, right_index=True, how='outer')
+
+                elif measure == 'EcodiversityWWF':
+                    # Load ecological GIS data from shapefile into the ecological DataFrame
+                    global ecologicalwwf
+                    ecologicalwwf = GISData(myshp=pathmeasures[measure] + 'wwf_terr_ecos_cyl.shp')
+
+                    # Convert Multipolygon into polygons for speeding up computations
+                    ecologicalwwf = ecologicalwwf.explode(index_parts=True).reset_index()
+
+                    # Calculate bounding boxes for ecological geometry and add them as a column
+                    ecologicalwwf['bbox'] = ecologicalwwf.geometry.apply(lambda x: x.bounds)
+
+                    # Create spatial index for ecological geometries
+                    idxeco = index.Index()
+                    [idxeco.insert(ecologicalwwf.index[i], ecologicalwwf.bbox[i]) for i in range(ecologicalwwf.shape[0])]
+
+                    # Copy geometry from self.df to dfin
+                    dfin = self.df[['geometry']].copy()
+
+                    # Set the CRS of dfin to match self.df
+                    dfin.crs = self.df.crs
+
+                    # Calculate bounding boxes for dfin's geometry and add them as a column
+                    dfin['bbox'] = dfin.geometry.apply(lambda x: x.bounds)
+
+                    # Determine which ecological geometries each dfin bounding box intersects with
+                    dfin['ecos'] = dfin.bbox.apply(lambda x: list(idxeco.intersection(x)))
+
+                    with Pool(processes=n_procs) as pool:
+                        processed_rows = pool.map(ecodivwwf_parallel, [(row, idxeco) for idx, row in dfin.iterrows()])
+
+                    # Apply the processed results to dfin
+                    processed_dfin = pd.DataFrame(processed_rows, columns=['ecodiversitywwf', 'ecopolarizationwwf'], index=dfin.index)
+                    dfin = pd.concat([dfin, processed_dfin], axis=1)
+
+                    # Merge ecodiversity and ecopolarization columns from dfin into self.df
+                    self.df = pd.merge(self.df, dfin[['ecodiversitywwf', 'ecopolarizationwwf']], left_index=True, right_index=True, how='outer')
+
                 elif measure == 'EcodiversityLGM':
                     # Load ecological GIS data from shapefile into the ecological DataFrame
                     global ecologicalLGM

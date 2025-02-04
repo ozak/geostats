@@ -3,7 +3,7 @@
 
 #import metadata
 from .metadata import *
-from .hmi import wgs84, cea, HMI, HMISea, path
+from .main import wgs84, cea, path, 
 import os
 import requests
 from tqdm import tqdm
@@ -44,7 +44,9 @@ def download():
             download_file_with_progress(url, dest_path)
 
 # Check whether data is present or not
-path = os.getenv('HOME') + '/DataOthers/'
+path = os.getenv('HOME') + '/geostats-data/'
+if not os.path.exists(path):
+    os.mkdir(path)
 if not os.path.exists(path):
     print('Downloading required HMI datasets.')
     print('This may take a few minutes.')
