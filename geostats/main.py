@@ -11,19 +11,8 @@ Program to compute all geographical statistics for regions given a shapefile
 from __future__ import division, print_function
 import sys, os
 os.environ['USE_PYGEOS'] = '0'
-#from osgeo import gdal, gdalnumeric, ogr, osr
-#from gdalconst import *
-#from PIL import Image, ImageDraw
-#import tarfile
-#import gzip
-#import shutil, glob
 import pandas as pd
-#from pyGDsandbox.dataIO import df2dbf, dbf2df
 from rasterstats import zonal_stats
-#import pysal as ps
-#import shapely
-#from shapely.wkt import loads, dumps
-#from pysal.contrib import shapely_ext
 import numpy as np
 from rtree import index
 from shapely.ops import unary_union, linemerge
@@ -32,8 +21,6 @@ import geopandas as gp
 from geopandas.tools import sjoin, overlay
 import pyproj
 from pyproj import CRS
-#import hmi
-#import georasters as gr
 import re
 from multiprocessing import Pool
 from multiprocessing import set_start_method
@@ -86,16 +73,15 @@ pathmeasures = {'Suitability' : path + '/Ramankutty/tifs/',
                 'HYDE' : path + '/HYDE/tifs/',
                 'Tsetse' : path + 'Tsetse/tifs/',
                 'Ecodiversity' : path + '/Ecodiversity/',
-                'EcodiversityWWF' : path + '/Ecological_Zones/WWF/',
-                'EcodiversityLGM' : path + '/PaleoVegetation/',
+                'EcodiversityWWF' : path + '/Ecodiversity/WWF/',
+                'EcodiversityLGM' : path + '/EcodiversityLGM/',
                 'Sea100' : path + '/Waters-Coasts/',
                 'Coast' : path + '/Waters-Coasts/',
                 'Inwater' : path + '/Waters-Coasts/',
                 'PerInwater' : path + '/Waters-Coasts/',
                 'FluctInwater' : path + '/Waters-Coasts/',
-                'Landscan' : path + '/Landscan/',
-                'GEcon' : path + '/GEconRaster/',
-                'HLD' : path + '/Harmonized Light Data/light/',
+                'Landscan' : path + '/Landscan/tifs/',
+                'HLD' : path + '/HLD/tifs/',
                 }
 
 # Paths to measures available for computations (if adding new measures one needs to change all places where the lists/dicts are created)
@@ -107,7 +93,7 @@ main_measures = [
     'CRU', 'CRU2', 'CSI', 'CSI2', 'CSICycle2', 'CSICycleExtra2', 'CSIPlow2', 
     'CSICrops', 'CropsYield', 'CSICycle', 'CSICycleExtra', 'CSIPlow', 'Malaria', 'Malaria2', 'HMI', 
     'PopDensAfrica', 'Popdens', 'Population', 'Population-GPWv4', 'PopDensity-GPWv4', 'HYDE', 'Tsetse', 'Ecodiversity', 'EcodiversityLGM', 
-    'Sea100', 'Coast', 'Inwater', 'PerInwater', 'FluctInwater', 'Landscan', 'GEcon', 'HLD'
+    'Sea100', 'Coast', 'Inwater', 'PerInwater', 'FluctInwater', 'Landscan', 'HLD'
 ]
 main_measures.sort()
 
@@ -115,7 +101,7 @@ main_measures.sort()
 wgs84_measures = [
     'Suitability2', 'CRU2', 'CSI2', 'CSICycle2', 'CSICycleExtra2', 'CSIPlow2', 'Lights2', 'Elevation2', 'Elevation4', 'RIX2', 
     'Malaria2', 'PopDensAfrica', 'Popdens', 'Population', 'HYDE', 
-    'Population-GPWv4', 'PopDensity-GPWv4', 'Landscan', 'CSICrops', 'CropsYield', 'GEcon', 'HLD'
+    'Population-GPWv4', 'PopDensity-GPWv4', 'Landscan', 'CSICrops', 'CropsYield', 'HLD'
 ]
 wgs84_measures.sort()
 
@@ -177,7 +163,6 @@ namemeasures = {'Suitability' : -4,
                 'PerInwater' : 0,
                 'FluctInwater' : 0,
                 'Landscan' : -4,
-                'GEcon' : -4,
                 'HLD' : 0,
                 }
 
@@ -407,8 +392,6 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
                     myvar = 'CSI' + myvar
                 elif measure=='Lights':
                     myvar = myvar + 'cyl'
-                elif measure=='GEcon':
-                    myvar = 'GE' + myvar
                 elif measure=='HLD':
                     myvar = 'HLD' + re.findall(r'\d+', i)[0]
                 # Multiprocessing of stats
@@ -693,6 +676,7 @@ class geostats(object):
                     # Merge ecodiversity and ecopolarization columns from dfin into self.df
                     self.df = pd.merge(self.df, dfin[['ecodiversity', 'ecopolarization']], left_index=True, right_index=True, how='outer')
 
+                '''
                 elif measure == 'EcodiversityWWF':
                     # Load ecological GIS data from shapefile into the ecological DataFrame
                     global ecologicalwwf
@@ -729,7 +713,7 @@ class geostats(object):
 
                     # Merge ecodiversity and ecopolarization columns from dfin into self.df
                     self.df = pd.merge(self.df, dfin[['ecodiversitywwf', 'ecopolarizationwwf']], left_index=True, right_index=True, how='outer')
-
+                '''
                 elif measure == 'EcodiversityLGM':
                     # Load ecological GIS data from shapefile into the ecological DataFrame
                     global ecologicalLGM
