@@ -1,6 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["geostats*"]
+exclude = ["notebooks*"]
 
 [project]
 name = "geostats"
