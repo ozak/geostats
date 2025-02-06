@@ -2,7 +2,7 @@
 """The geostats package is a python module that provides an interface to compute spatial statistics based on a shapefile for various datasets."""
 # Import metadata
 from .metadata import *
-from .main import wgs84, cea, path
+from .main import *
 import os
 import requests
 import hashlib
