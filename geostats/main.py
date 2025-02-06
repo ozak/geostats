@@ -189,11 +189,15 @@ def gini(self):
 
     Return computed Gini coefficient.
     '''
-    if self.count()>1:
-        xsort = sorted(self.data[self.mask==False].flatten()) # increasing order
-        y = np.cumsum(xsort)
-        B = sum(y) / (y[-1] * len(xsort))
-        return 1 +  1./len(xsort) - 2*B
+    if self.count() > 1:
+        xsort = sorted(self.data[self.mask == False].flatten())  # Increasing order        
+        if len(xsort) == 0:  # Handle empty array case
+            return np.nan  # Or return 0, depending on your needs        
+        y = np.cumsum(xsort)        
+        with warnings.catch_warnings():  # Suppress warnings only in this block
+            warnings.simplefilter("ignore", RuntimeWarning)
+            B = sum(y) / (y[-1] * len(xsort))        
+        return 1 + 1. / len(xsort) - 2 * B
     else:
         return 1
 
