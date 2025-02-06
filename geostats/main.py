@@ -39,7 +39,7 @@ n_procs = os.cpu_count()
 # We include the WGS84 (EPSG:4326) and Lanbert Cylindrical Equal Area (ESRI:54034) projections of the data.
 # In the future we may expand to have on-the-fly reprojection (part of to-do list)
 # Paths
-path = os.getenv('HOME') + '/geostats/'
+path = os.getenv('HOME') + '/geostats-data/'
 pathmeasures = {'Suitability' : path + '/Ramankutty/tifs/',
                 'Suitability2' : path + '/Ramankutty/tifs/',
                 'Lights' : path + '/Lights/tifs/',
