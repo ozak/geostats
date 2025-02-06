@@ -675,7 +675,6 @@ class geostats(object):
 
                     # Merge ecodiversity and ecopolarization columns from dfin into self.df
                     self.df = pd.merge(self.df, dfin[['ecodiversity', 'ecopolarization']], left_index=True, right_index=True, how='outer')
-
                 '''
                 elif measure == 'EcodiversityWWF':
                     # Load ecological GIS data from shapefile into the ecological DataFrame
