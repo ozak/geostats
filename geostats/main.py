@@ -380,9 +380,9 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
             if measure=='HLD':
                 mytiffiles=[mytiffile for mytiffile in mytiffiles if mytiffile.find('Harmonized')!=-1]
             elif measure == 'CSICycle2':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
+                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
             elif measure == 'CSICycleExtra2':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
+                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
         else:
             dfin = df
             dfin.crs = df.crs
@@ -503,9 +503,9 @@ class geostats(object):
                 elif measure == 'CSI2':
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
                 elif measure == 'CSICycle2':
-                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
                 elif measure == 'CSICycleExtra2':
-                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
             else:
                 dfin = self.df
                 dfin.crs = self.df.crs

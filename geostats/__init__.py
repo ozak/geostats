@@ -129,16 +129,18 @@ def extract_7z_parts(temp_dir):
     print(f"🛠 Extracting {first_part} to {home_dir} using 7z CLI with multi-threading and progress tracking...")
 
     try:
-        # Run 7z with multi-threading (-mmt=on) and progress tracking (-bsp1 -bso0)
+        # Run 7z with multi-threading (-mmt=on) and real-time progress tracking
         command = ["7z", "x", first_part, f"-o{home_dir}", "-mmt=on", "-bsp1", "-bso0", "-y"]
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
 
         # Initialize progress bar
         progress_bar = tqdm(total=100, unit="%", dynamic_ncols=True, leave=True)
 
-        for line in process.stdout:
-            print(line.strip())  # Keep this to debug output if needed
-            match = re.search(r'(\d+)%', line)  # Look for progress percentage
+        for line in iter(process.stdout.readline, ''):
+            sys.stdout.write(line)  # Force output to be displayed in real-time
+            sys.stdout.flush()  # Flush buffer immediately
+
+            match = re.search(r'(\d+)%', line)
             if match:
                 progress = int(match.group(1))
                 progress_bar.n = progress
