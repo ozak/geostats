@@ -162,3 +162,4 @@ cython_debug/
 # data folder
 */data
 */data/
+/geostats/7z_data

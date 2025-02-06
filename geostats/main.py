@@ -115,11 +115,11 @@ shp_measures.sort()
 ecodiv_measures = ['Ecodiversity', 'EcodiversityLGM']
 ecodiv_measures.sort()
 
-ceameasures = list(set(mainmeasures).difference(set(wgs84measures)).difference(set(shpmeasures)))
-ceameasures.sort()
+cea_measures = list(set(main_measures).difference(set(wgs84_measures)).difference(set(shp_measures)))
+cea_measures.sort()
 
-noecodivmeasures = list(set(ceameasures).difference(set(ecodivmeasures)))
-noecodivmeasures.sort()
+noecodiv_measures = list(set(cea_measures).difference(set(ecodiv_measures)))
+noecodiv_measures.sort()
 
 # Identify how many characters need to be adjusted for correct name in each source
 namemeasures = {'Suitability' : -4,
@@ -168,7 +168,7 @@ namemeasures = {'Suitability' : -4,
 
 # Functions to perform various operations
 # Create vector of polygons and iso-codes
-def GISData(myshp=pathcntrycyl + 'DCW_countriescyl.shp', adds=False):
+def GISData(myshp, adds=False):
     '''
     This function imports the shape file and converts everyhting to Shapely, and WKT and saves it in a
     pandas dataframe
@@ -351,7 +351,7 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
         df['lat']=dfnocyl.centroid.apply(lambda c: c.coords.xy[1][0])
 
     if np.sum([m.upper()=='ALL' for m in measures])>0:
-        measures = list(mainmeasures)
+        measures = list(main_measures)
     else:
         measures = list(measures)
     pass
@@ -359,7 +359,7 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
     for measure in measures:
         print('Computing Stats for:',measure)
         rpath = pathmeasures[measure]
-        if measure in ceameasures:
+        if measure in cea_measures:
             dfin = df
             dfin.crs = df.crs
             mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
@@ -369,7 +369,7 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
             elif measure == 'CSICycleExtra':
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
-        elif measure in wgs84measures:
+        elif measure in wgs84_measures:
             dfin = dfnocyl
             dfin.crs = dfnocyl.crs
             mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
@@ -382,7 +382,7 @@ def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=Tr
         else:
             dfin = df
             dfin.crs = df.crs
-        if measure not in shpmeasures:
+        if measure not in shp_measures:
             mytiffiles.sort()
             for i in mytiffiles:
                 myvar=i[:namemeasures[measure]]
@@ -466,7 +466,7 @@ class geostats(object):
         self.add_stats = add_stats
         self.all_touched = all_touched
         if np.sum([m.upper()=='ALL' for m in measures])>0:
-            self.measures = list(mainmeasures)
+            self.measures = list(main_measures)
         else:
             self.measures = list(measures)
         pass
@@ -478,7 +478,7 @@ class geostats(object):
         for measure in self.measures:
             print('Computing Stats for:',measure)
             rpath = pathmeasures[measure]
-            if measure in ceameasures:
+            if measure in cea_measures:
                 dfin = self.df
                 dfin.crs = self.df.crs
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
@@ -490,7 +490,7 @@ class geostats(object):
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
                 elif measure == 'CSICycleExtra':
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
-            elif measure in wgs84measures:
+            elif measure in wgs84_measures:
                 dfin = self.dfnocyl
                 dfin.crs = self.dfnocyl.crs
                 mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
@@ -505,7 +505,7 @@ class geostats(object):
             else:
                 dfin = self.df
                 dfin.crs = self.df.crs
-            if measure not in shpmeasures:
+            if measure not in shp_measures:
                 mytiffiles.sort()
                 for i in mytiffiles:
                     myvar=i[:namemeasures[measure]]
@@ -675,44 +675,6 @@ class geostats(object):
 
                     # Merge ecodiversity and ecopolarization columns from dfin into self.df
                     self.df = pd.merge(self.df, dfin[['ecodiversity', 'ecopolarization']], left_index=True, right_index=True, how='outer')
-                '''
-                elif measure == 'EcodiversityWWF':
-                    # Load ecological GIS data from shapefile into the ecological DataFrame
-                    global ecologicalwwf
-                    ecologicalwwf = GISData(myshp=pathmeasures[measure] + 'wwf_terr_ecos_cyl.shp')
-
-                    # Convert Multipolygon into polygons for speeding up computations
-                    ecologicalwwf = ecologicalwwf.explode(index_parts=True).reset_index()
-
-                    # Calculate bounding boxes for ecological geometry and add them as a column
-                    ecologicalwwf['bbox'] = ecologicalwwf.geometry.apply(lambda x: x.bounds)
-
-                    # Create spatial index for ecological geometries
-                    idxeco = index.Index()
-                    [idxeco.insert(ecologicalwwf.index[i], ecologicalwwf.bbox[i]) for i in range(ecologicalwwf.shape[0])]
-
-                    # Copy geometry from self.df to dfin
-                    dfin = self.df[['geometry']].copy()
-
-                    # Set the CRS of dfin to match self.df
-                    dfin.crs = self.df.crs
-
-                    # Calculate bounding boxes for dfin's geometry and add them as a column
-                    dfin['bbox'] = dfin.geometry.apply(lambda x: x.bounds)
-
-                    # Determine which ecological geometries each dfin bounding box intersects with
-                    dfin['ecos'] = dfin.bbox.apply(lambda x: list(idxeco.intersection(x)))
-
-                    with Pool(processes=n_procs) as pool:
-                        processed_rows = pool.map(ecodivwwf_parallel, [(row, idxeco) for idx, row in dfin.iterrows()])
-
-                    # Apply the processed results to dfin
-                    processed_dfin = pd.DataFrame(processed_rows, columns=['ecodiversitywwf', 'ecopolarizationwwf'], index=dfin.index)
-                    dfin = pd.concat([dfin, processed_dfin], axis=1)
-
-                    # Merge ecodiversity and ecopolarization columns from dfin into self.df
-                    self.df = pd.merge(self.df, dfin[['ecodiversitywwf', 'ecopolarizationwwf']], left_index=True, right_index=True, how='outer')
-                '''
                 elif measure == 'EcodiversityLGM':
                     # Load ecological GIS data from shapefile into the ecological DataFrame
                     global ecologicalLGM
