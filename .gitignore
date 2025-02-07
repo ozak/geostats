@@ -163,3 +163,5 @@ cython_debug/
 */data
 */data/
 /geostats/7z_data
+data/Country-Stats.csv
+data/Country-Stats.dta
