@@ -130,7 +130,26 @@ Example Usage: GeoStats
 -------------------------
 
 ``` python
+ # Import packages
+ import geopandas as gpd
  import geostats 
+ 
+ # Read polygon data for which you want to compute statistics
+ mygdf = gpd.read_file('myshapefile.shp')
+ 
+ # Setup geostats object
+ mystats = = geostats.geostats(mygdf)
+ 
+ # Compute
+ mystats.geostats()
+ 
+ # See results
+ mystats.df
+ 
+ # Export data
+ out = mystats.df.copy()
+ out = out.drop(columns=['geometry'])
+ out.to_csv(pathout + 'My-Stats.csv', encoding='utf-8', index=False)
 ``` 
 
 ## Citation
@@ -141,19 +160,35 @@ If you use the package please cite:
 Özak, Ömer. 2014. "The GeoStats Python package - `geostats`".
 ```
 
-Also, make sure to cite all 
+Also, make sure to cite all data sources above. This [`BibTeX` file](./geostats.bib) should contain all the (required) citations.
 
 
+## Disclaimer
+
+**GeoStats** is provided for informational and research purposes only. The software and its outputs are distributed *"as is"* without any warranties, express or implied, including but not limited to the accuracy, completeness, reliability, or suitability for any particular purpose. 
+
+We do not guarantee that the computations, analyses, or geospatial statistics produced by **GeoStats** are free from errors or fit for any specific application. Users assume full responsibility for the interpretation and application of results obtained from this package. 
+
+We disclaim any liability for any loss, damage, or consequences arising from the use of **GeoStats**, including reliance on its results for decision-making. By using **GeoStats**, you acknowledge and accept these terms.
  
 Issues
 ------
 
-Find a bug? Report it via github issues by providing
+Find a bug? Report it via GitHub issues by providing
 
 - a link to download the smallest possible raster and vector dataset necessary to reproduce the error
 - python code or command to reproduce the error
 - information on your environment: versions of python, gdal and numpy and system memory
 
+
+Want a Data Source Added?
+----
+
+Any free and redistributable source can be added to the package, and we are constantly looking for additions. If you want some data source to be included, suggest it via GitHub issues by providing
+
+- a link to the source
+- a link to the license (ensuring it is free and redistributable)
+- (if possible) create a pull request where you add the source as a new measure. This requires adding it in `pathmeasures`, `main_measures`, and possibly in `main_measures` in the `main.py` file.
 
 # Copyright 
 
