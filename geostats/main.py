@@ -271,9 +271,9 @@ def process_geometry_coasts_df(dfin):
 def ecodiv_parallel(args):
     row, idxeco = args
     if row['ecos'] != []:
-        tarea = row['geometry'].area
         polys = ecological.iloc[row.ecos].dissolve(by=['OBJECTID', 'WWF_MHTNAM'])
-        share = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1) / tarea
+        areas = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1)
+        share = areas / areas.sum()
         sharesq = share**2
         sharesq2 = share * (1 - 2 * share)**2
         sharesq = sharesq.sum()
@@ -290,7 +290,8 @@ def ecodivwwf_parallel(args):
     if row['ecos'] != []:
         tarea = row['geometry'].area
         polys = ecological.iloc[row.ecos].dissolve(by=['ECO_NAME', 'ECO_NUM', 'ECO_ID', 'ECO_SYM', 'eco_code'])
-        share = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1) / tarea
+        areas = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1)
+        share = areas / areas.sum()
         sharesq = share**2
         sharesq2 = share * (1 - 2 * share)**2
         sharesq = sharesq.sum()
@@ -307,7 +308,8 @@ def ecodivLGM_parallel(args):
     if row['ecos'] != []:
         tarea = row['geometry'].area
         polys = ecologicalLGM.iloc[row.ecos]
-        share = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1) / tarea
+        areas = polys.apply(lambda x: row.geometry.buffer(0).intersection(x.geometry.buffer(0)).area, axis=1)
+        share = areas / areas.sum()
         sharesq = share**2
         sharesq2 = share * (1 - 2 * share)**2
         sharesq = sharesq.sum()
@@ -325,92 +327,6 @@ def zs_parallel2(x):
     [n, shape, rpathi, stats, copy_properties, add_stats, all_touched] = x
     return zonal_stats(shape, rpathi, stats=stats, copy_properties=copy_properties,
                     add_stats=add_stats, all_touched=all_touched)[0]
-
-def geostats_MP(shapefile, measures = ['All'], stats=mystats, copy_properties=True,
-             add_stats=addstats, all_touched=True, adds=True, correct_cea=True, correct_wgs=True):
-    '''Compute Zonalstats for measures using MP'''
-    df = GISData(myshp = shapefile, adds=adds)
-    if df.crs!=wgs84:
-        dfnocyl = df.copy().to_crs(wgs84)
-    else:
-        dfnocyl = df.copy()
-    if df.crs!=cea:
-        df = df.to_crs(cea)
-    if correct_cea:
-        df.loc[df.is_valid==False, 'geometry'] = df.loc[df.is_valid==False, 'geometry'].apply(lambda x: x.buffer(0))
-    if correct_wgs:
-        dfnocyl.loc[dfnocyl.is_valid==False, 'geometry'] = dfnocyl.loc[dfnocyl.is_valid==False, 'geometry'].apply(lambda x: x.buffer(0))
-    if adds:
-        if df.geom_type.values[0].find('Polygon')!=-1:
-            df['area']=df.area/1e6
-            df['boundary']=df.boundary.length/1e3
-        if df.geom_type.values[0].find('Point')!=-1:
-            df['boundary']=df.boundary.length/1e3
-    # Lat lon
-    df['X']=df.centroid.apply(lambda c: c.coords.xy[0][0])
-    df['Y']=df.centroid.apply(lambda c: c.coords.xy[1][0])
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning)
-        df['lon']=dfnocyl.centroid.apply(lambda c: c.coords.xy[0][0])
-        df['lat']=dfnocyl.centroid.apply(lambda c: c.coords.xy[1][0])
-
-    if np.sum([m.upper()=='ALL' for m in measures])>0:
-        measures = list(main_measures)
-    else:
-        measures = list(measures)
-    pass
-
-    for measure in measures:
-        print('Computing Stats for:',measure)
-        rpath = pathmeasures[measure]
-        if measure in cea_measures:
-            dfin = df
-            dfin.crs = df.crs
-            mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
-            if measure == 'HMI':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')]
-            elif measure == 'CSICycle':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
-            elif measure == 'CSICycleExtra':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif') and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
-        elif measure in wgs84_measures:
-            dfin = dfnocyl
-            dfin.crs = dfnocyl.crs
-            mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
-            if measure=='HLD':
-                mytiffiles=[mytiffile for mytiffile in mytiffiles if mytiffile.find('Harmonized')!=-1]
-            elif measure == 'CSICycle2':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')!=-1 or mytiffile.find('dif')!=-1)]
-            elif measure == 'CSICycleExtra2':
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')==True and mytiffile.endswith('cyl.tif')==False and (mytiffile.find('1500')==-1 and mytiffile.find('dif')==-1)]
-        else:
-            dfin = df
-            dfin.crs = df.crs
-        if measure not in shp_measures:
-            mytiffiles.sort()
-            for i in mytiffiles:
-                myvar=i[:namemeasures[measure]]
-                if measure=='CSICycleWater' or measure=='CSIWater':
-                    myvar = 'w' +  myvar
-                elif measure=='CSICrops':
-                    myvar = 'CSI' + myvar
-                elif measure=='Lights':
-                    myvar = myvar + 'cyl'
-                elif measure=='HLD':
-                    myvar = 'HLD' + re.findall(r'\d+', i)[0]
-                # Multiprocessing of stats
-                print(myvar)
-                n = range(0, len(dfin))
-                mypool = [[n, dfin.loc[n, ['geometry']], rpath + i, stats, copy_properties, add_stats, all_touched] for n in range(0, len(dfin))]
-                pool = Pool(n_procs)
-                results = pool.map(zs_parallel2, mypool)
-                pool.close()
-                df2 = pd.DataFrame(data=results)
-                mypstats = [myvar + j for j in df2.columns.values]
-                df2.columns = mypstats
-                df2.fillna(0,inplace=True)
-                df = pd.merge(df, df2, left_index=True, right_index=True, how='outer')
-    return df
 
 class geostats(object):
     """
