@@ -201,6 +201,30 @@ def gini(self):
     else:
         return 1
 
+def largest_polygon_centroid(multipolygon):
+    if multipolygon.geom_type == "Polygon":
+        centroid = multipolygon.centroid
+        if centroid.intersects(multipolygon)==False:
+            centroid = multipolygon.representative_point()
+        return centroid
+    elif multipolygon.geom_type == "MultiPolygon":
+        areas = np.array([polygon.area for polygon in multipolygon.geoms])
+        largest_polygon = multipolygon.geoms[np.argmax(areas)]
+        centroid = largest_polygon.centroid
+        if centroid.intersects(largest_polygon)==False:
+            centroid = largest_polygon.representative_point()
+        return centroid
+    
+def largest_polygon_centroid_representative(multipolygon):
+    if multipolygon.geom_type == "Polygon":
+        centroid = multipolygon.representative_point()
+        return centroid
+    elif multipolygon.geom_type == "MultiPolygon":
+        areas = np.array([polygon.area for polygon in multipolygon.geoms])
+        largest_polygon = multipolygon.geoms[np.argmax(areas)]
+        centroid = largest_polygon.representative_point()
+        return centroid
+
 # The DataFrames to construct and keep all the additional data
 mystats=['min', 'max', 'median', 'mean', 'majority', 'sum','std','count']
 addstats={'gini':gini}
@@ -350,7 +374,7 @@ class geostats(object):
             adds: Boolean, default True, compute area, boundary, centroid
     """
     # Initialize Object
-    def __init__(self, shapefile, measures = ['All'], stats=mystats, copy_properties=True,
+    def __init__(self, shapefile, measures = ['All'], stats=mystats, real_centroid=False, copy_properties=True,
                  add_stats=addstats, all_touched=True, adds=True, correct_cea=True, correct_wgs=True, **kwargs):
         '''
         Initialize
@@ -375,12 +399,21 @@ class geostats(object):
             if self.df.geom_type.values[0].find('Point')!=-1:
                 self.df['boundary']=self.df.boundary.length/1e3
         # Lat lon
-        self.df['X']=self.df.centroid.apply(lambda c: c.coords.xy[0][0])
-        self.df['Y']=self.df.centroid.apply(lambda c: c.coords.xy[1][0])
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=UserWarning)
-            self.df['lon']=self.dfnocyl.centroid.apply(lambda c: c.coords.xy[0][0])
-            self.df['lat']=self.dfnocyl.centroid.apply(lambda c: c.coords.xy[1][0])
+        if real_centroid==False:
+            self.df['X']=self.df.centroid.apply(lambda c: c.coords.xy[0][0])
+            self.df['Y']=self.df.centroid.apply(lambda c: c.coords.xy[1][0])
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                self.df['lon']=self.dfnocyl.centroid.apply(lambda c: c.coords.xy[0][0])
+                self.df['lat']=self.dfnocyl.centroid.apply(lambda c: c.coords.xy[1][0])
+        else:
+            # Lat lon
+            self.df['X']=self.df.geometry.apply(largest_polygon_centroid_representative).apply(lambda c: c.coords.xy[0][0])
+            self.df['Y']=self.df.geometry.apply(largest_polygon_centroid_representative).apply(lambda c: c.coords.xy[1][0])
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning)
+                self.df['lon']=self.dfnocyl.geometry.apply(largest_polygon_centroid_representative).apply(lambda c: c.coords.xy[0][0])
+                self.df['lat']=self.dfnocyl.geometry.apply(largest_polygon_centroid_representative).apply(lambda c: c.coords.xy[1][0])
         self.stats = stats
         self.copy_properties = copy_properties
         self.add_stats = add_stats

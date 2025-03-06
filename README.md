@@ -99,6 +99,7 @@ The package computes spatial statistics using the following datasets:
 |Population Density (Africa) | [UNESCO (1987) through UNEP/GRID-Sioux Falls](https://na.unep.net/siouxfalls/datasets/datalist.php) (Accessed Jan. 22, 2015)| Most of the UNEP/GRID data sets are freely available for download by users via the Internet. UNEP/GRID does not place any restrictions on the use of this data, but does request that users cite UNEP/GRID. See [license](https://na.unep.net/siouxfalls/datasets/datapolicy.php). | `afpopdXX`, where `XX=60, 70, 80, 90, 00` is the year. | `/geostats-data/UNEP/`|
 |Population (counts, 2000-2023)| Bright, E. and P. R. Coleman, 2001. [Landscan 2000-2023](https://landscan.ornl.gov/about), Oak Ridge, TN: Oak Ridge National Laboratory. (Accessed Jan. 17, 2025) [(Data)](https://landscan.ornl.gov/)| [Creative Commons Attribution 4.0 International License](https://landscan.ornl.gov/licensing).| `lsXXXX` where `XXXX=2000,...,20023` |`/geostats-data/Landscan/`|
 
+[FAO](https://www.fao.org/contact-us/terms/db-terms-of-use/en/) has updated its license policies for all its data, which now is [CC-BY-4.0](https://www.fao.org/contact-us/terms/db-terms-of-use/en/).
 
 Install
 -------
