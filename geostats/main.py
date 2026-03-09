@@ -122,6 +122,9 @@ noecodiv_measures = list(set(cea_measures).difference(set(ecodiv_measures)))
 noecodiv_measures.sort()
 
 # Identify how many characters need to be adjusted for correct name in each source
+# Tracks single-file user-registered rasters: name -> basename
+_user_single_files = {}
+
 namemeasures = {'Suitability' : -4,
                 'Suitability2' : -4,
                 'Lights' : 7,
@@ -165,6 +168,62 @@ namemeasures = {'Suitability' : -4,
                 'Landscan' : -4,
                 'HLD' : 0,
                 }
+
+def add_raster(path, name, crs='auto'):
+    '''
+    Register a user-provided raster so it can be used in geostats like any
+    built-in measure.
+
+    Parameters
+    ----------
+    path : str
+        Path to a single .tif file, or a directory containing .tif files.
+    name : str
+        Measure name to use (becomes the column prefix in output).
+    crs : str
+        'wgs84', 'cea', or 'auto' (detect from the raster file). Default 'auto'.
+
+    Example
+    -------
+    >>> add_raster('/data/ndvi.tif', name='ndvi')
+    >>> add_raster('/data/precip_tifs/', name='Precip')
+    >>> A = geostats(shapefile, measures=['CSI', 'ndvi', 'Precip'])
+    >>> A.geostats()
+    '''
+    import rasterio
+
+    path = os.path.expanduser(os.path.abspath(path))
+
+    if crs == 'auto':
+        if os.path.isfile(path):
+            probe = path
+        else:
+            tifs = sorted(f for f in os.listdir(path) if f.endswith('.tif'))
+            if not tifs:
+                raise ValueError(f"No .tif files found in {path}")
+            probe = os.path.join(path, tifs[0])
+        with rasterio.open(probe) as src:
+            raster_crs = CRS.from_user_input(src.crs)
+        crs = 'wgs84' if raster_crs == wgs84 else 'cea'
+
+    if os.path.isfile(path):
+        _user_single_files[name] = os.path.basename(path)
+        pathmeasures[name] = os.path.dirname(path) + os.sep
+        namemeasures[name] = None   # sentinel: use measure name as column prefix
+    else:
+        pathmeasures[name] = path if path.endswith(os.sep) else path + os.sep
+        namemeasures[name] = -4
+
+    if crs == 'wgs84':
+        wgs84_measures.append(name)
+        wgs84_measures.sort()
+    else:
+        cea_measures.append(name)
+        cea_measures.sort()
+
+    main_measures.append(name)
+    main_measures.sort()
+
 
 # Functions to perform various operations
 # Create vector of polygons and iso-codes
@@ -422,6 +481,9 @@ class geostats(object):
             self.measures = list(main_measures)
         else:
             self.measures = list(measures)
+        # Ensure 0-based contiguous index so dfin.loc[n] works after any filtering
+        self.df = self.df.reset_index(drop=True)
+        self.dfnocyl = self.dfnocyl.reset_index(drop=True)
         pass
 
     def geostats(self, **kwargs):
@@ -434,7 +496,10 @@ class geostats(object):
             if measure in cea_measures:
                 dfin = self.df
                 dfin.crs = self.df.crs
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
+                if measure in _user_single_files:
+                    mytiffiles = [_user_single_files[measure]]
+                else:
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('cyl.tif')]
                 if measure == 'HMI':
                     mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif')]
                 elif measure == 'CSI':
@@ -446,7 +511,10 @@ class geostats(object):
             elif measure in wgs84_measures:
                 dfin = self.dfnocyl
                 dfin.crs = self.dfnocyl.crs
-                mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
+                if measure in _user_single_files:
+                    mytiffiles = [_user_single_files[measure]]
+                else:
+                    mytiffiles=[mytiffile for mytiffile in os.listdir(rpath) if mytiffile.endswith('.tif') and mytiffile.find('cyl.tif')==-1]
                 if measure=='HLD':
                     mytiffiles=[mytiffile for mytiffile in mytiffiles if mytiffile.find('Harmonized')!=-1]
                 elif measure == 'CSI2':
@@ -461,7 +529,7 @@ class geostats(object):
             if measure not in shp_measures:
                 mytiffiles.sort()
                 for i in mytiffiles:
-                    myvar=i[:namemeasures[measure]]
+                    myvar = measure if namemeasures[measure] is None else i[:namemeasures[measure]]
                     if measure=='CSICycleWater' or measure=='CSIWater':
                         myvar = 'w' +  myvar
                     elif measure=='CSICrops':
