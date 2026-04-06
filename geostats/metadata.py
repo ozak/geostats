@@ -8,7 +8,7 @@ Information describing the project.
 package = 'geostats'
 project = "GeoStats"
 project_no_spaces = project.replace(' ', '')
-version = '0.1'
+version = '0.2'
 description = "The geostats package is a python module that provides an interface to compute spatial statistics based on a shapefile for various datasets."
 authors = ['Ömer Özak']
 authors_string = ', '.join(authors)
