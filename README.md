@@ -116,15 +116,22 @@ activate the environment
 mamba activate GeoStats
 ```
 
-then 
+then install the package. The PyPI distribution is named `geostats-ozak` (the name `geostats` was already taken on PyPI), but the import name is still `geostats`:
 
 ```bash
- pip install geostats
+pip install geostats-ozak
 ```
- or
+
+Alternatively, install directly from GitHub:
 
 ```bash
- pip install git+git://github.com/ozak/geostats.git
+pip install git+https://github.com/ozak/geostats.git
+```
+
+In both cases, import the package as:
+
+```python
+import geostats
 ```
 
 Example Usage: GeoStats
