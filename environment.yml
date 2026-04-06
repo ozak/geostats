@@ -1,4 +1,4 @@
-name: OriginLanguages
+name: geostats
 channels:
   - conda-forge
   - r
