@@ -164,3 +164,104 @@ def test_add_raster_real_countries_count_positive(ne_countries, global_wgs84_tif
                  stats=['count'], add_stats={}, adds=True)
     G.geostats()
     assert (G.df['customcount'].fillna(0) > 0).all()
+
+
+# ---------------------------------------------------------------------------
+# Equivalence test: built-in Suitability vs add_raster pointing to same data
+# ---------------------------------------------------------------------------
+
+SUITABILITY_DATA = os.path.join(os.path.expanduser('~'), 'geostats-data', 'Ramankutty', 'tifs')
+
+_suitability_skip = pytest.mark.skipif(
+    not os.path.isdir(SUITABILITY_DATA),
+    reason='~/geostats-data/Ramankutty/tifs/ not present — skipping Suitability equivalence test',
+)
+
+STATS = ['mean', 'min', 'max', 'std', 'count']
+
+
+def _suitability_cols(prefix_col):
+    """Return expected stat column names for a given raster prefix column."""
+    return [f'{prefix_col}{s}' for s in STATS]
+
+
+@_suitability_skip
+def test_suitability_builtin_produces_columns(ne_countries):
+    """Built-in Suitability measure produces the expected CEA stat columns."""
+    from geostats.main import geostats as GeoStats
+    subset = ne_countries[ne_countries['CONTINENT'] == 'South America'].copy()
+    G = GeoStats(subset, measures=['Suitability'], stats=STATS, add_stats={}, adds=True)
+    G.geostats()
+    for col in _suitability_cols('suitcyl'):
+        assert col in G.df.columns, f'Missing column: {col}'
+
+
+@_suitability_skip
+def test_suitability_add_raster_produces_same_columns(ne_countries):
+    """
+    add_raster(..., crs='cea') pointing to Ramankutty/tifs/ produces the same
+    CEA column names as the built-in Suitability measure (filename[:-4] stems).
+    """
+    from geostats.main import geostats as GeoStats
+    subset = ne_countries[ne_countries['CONTINENT'] == 'South America'].copy()
+    # crs='cea' mirrors how the built-in Suitability is registered: it selects
+    # files ending with 'cyl.tif' and uses Lambert CEA geometries.
+    add_raster(SUITABILITY_DATA, name='MySuitability', crs='cea')
+    G = GeoStats(subset, measures=['MySuitability'], stats=STATS, add_stats={}, adds=True)
+    G.geostats()
+    # namemeasures['MySuitability'] == -4 → prefix = filename[:-4] = 'suitcyl', etc.
+    for col in _suitability_cols('suitcyl'):
+        assert col in G.df.columns, f'Missing column: {col}'
+
+
+@_suitability_skip
+def test_suitability_builtin_equals_add_raster(ne_countries):
+    """
+    Built-in Suitability and add_raster(..., crs='cea') pointing to the same
+    directory produce numerically identical results for every country and stat.
+
+    The built-in Suitability is a CEA measure: it processes *cyl.tif files
+    (Lambert CEA projection) and yields column prefixes like 'suitcyl',
+    'climsuitcyl', etc.  Registering the same directory via add_raster with
+    crs='cea' replicates that behaviour exactly.
+    """
+    from geostats.main import geostats as GeoStats
+
+    subset = ne_countries[ne_countries['CONTINENT'] == 'South America'].copy().reset_index(drop=True)
+
+    # ── Built-in Suitability ────────────────────────────────────────────────
+    G_builtin = GeoStats(subset.copy(), measures=['Suitability'], stats=STATS, add_stats={}, adds=True)
+    G_builtin.geostats()
+    df_builtin = G_builtin.df.reset_index(drop=True)
+
+    # ── add_raster pointing to the same Ramankutty/tifs/ directory ──────────
+    # crs='cea' is required so that the measure ends up in cea_measures (like
+    # the built-in), causing the pipeline to select *cyl.tif files and use the
+    # Lambert CEA GeoDataFrame — exactly what Suitability does internally.
+    add_raster(SUITABILITY_DATA, name='MySuitability', crs='cea')
+    G_custom = GeoStats(subset.copy(), measures=['MySuitability'], stats=STATS, add_stats={}, adds=True)
+    G_custom.geostats()
+    df_custom = G_custom.df.reset_index(drop=True)
+
+    # Both pipelines produce columns with the same prefix stems (filename[:-4])
+    # because namemeasures is -4 for both.
+    stat_cols = [col for col in df_builtin.columns
+                 if col.startswith('suitcyl') or col.startswith('climsuitcyl')]
+    assert len(stat_cols) > 0, 'No Suitability stat columns found in built-in output'
+
+    for col in stat_cols:
+        assert col in df_custom.columns, f'add_raster output missing column: {col}'
+        builtin_vals = df_builtin[col]
+        custom_vals  = df_custom[col]
+        # NaN positions must agree
+        assert builtin_vals.isna().equals(custom_vals.isna()), (
+            f'NaN pattern differs for column {col}'
+        )
+        # Non-NaN values must be numerically identical
+        mask = builtin_vals.notna()
+        np.testing.assert_allclose(
+            builtin_vals[mask].values,
+            custom_vals[mask].values,
+            rtol=1e-6,
+            err_msg=f'Values differ for column {col}',
+        )
