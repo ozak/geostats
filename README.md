@@ -1,7 +1,7 @@
 The GeoStats Python package - `geostats`
 ===========
 
-<a href="https://pypi.python.org/pypi/hmi/">![PyPiVersion](https://img.shields.io/pypi/v/hmi.svg)</a> <a href="">![Pyversions](https://img.shields.io/pypi/pyversions/hmi.svg)</a> <a href="https://hmi.readthedocs.io/en/latest/">![ReadTheDocs](https://readthedocs.org/projects/hmi/badge/?version=latest&style=plastic)</a> <a>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14291903.svg)](https://doi.org/10.5281/zenodo.14291903)</a>
+<a href="https://pypi.python.org/pypi/geostats/">![PyPiVersion](https://img.shields.io/pypi/v/geostats.svg)</a> <a href="">![Pyversions](https://img.shields.io/pypi/pyversions/geostats.svg)</a> <a href="https://geostats.readthedocs.io/en/latest/">![ReadTheDocs](https://readthedocs.org/projects/geostats/badge/?version=latest&style=plastic)</a> <a>[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14291903.svg)](https://doi.org/10.5281/zenodo.14291903)</a>
 
 The geostats package is a python module that provides an interface to compute spatial statistics based on a shapefile for various datasets. The package uses a user-provided shapefile or `GeoDataFrame` to compute statistics for each polygon. 
 
@@ -139,7 +139,7 @@ Example Usage: GeoStats
  mygdf = gpd.read_file('myshapefile.shp')
  
  # Setup geostats object
- mystats = = geostats.geostats(mygdf)
+ mystats = geostats.geostats(mygdf)
  
  # Compute
  mystats.geostats()
