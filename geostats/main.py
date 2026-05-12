@@ -122,8 +122,15 @@ noecodiv_measures = list(set(cea_measures).difference(set(ecodiv_measures)))
 noecodiv_measures.sort()
 
 # Identify how many characters need to be adjusted for correct name in each source
+# Frozen set of built-in measure names — prevents user registrations from
+# overwriting built-in registry entries.
+_builtin_measure_names = frozenset(main_measures)
+
 # Tracks single-file user-registered rasters: name -> basename
 _user_single_files = {}
+
+# Tracks registered custom rasters: name -> (path, crs) for idempotency checks
+_user_registered = {}
 
 namemeasures = {'Suitability' : -4,
                 'Suitability2' : -4,
@@ -182,6 +189,16 @@ def add_raster(path, name, crs='auto'):
         Measure name to use (becomes the column prefix in output).
     crs : str
         'wgs84', 'cea', or 'auto' (detect from the raster file). Default 'auto'.
+        When 'auto', the raster must be in exactly WGS84 (EPSG:4326) or Lambert
+        CEA (ESRI:54034); any other CRS raises ValueError.
+
+    Raises
+    ------
+    ValueError
+        If name collides with a built-in measure, if crs is not one of the
+        accepted values, if a directory has no .tif files, if the detected CRS
+        is neither WGS84 nor CEA, or if the same name is re-registered with
+        different parameters.
 
     Example
     -------
@@ -191,6 +208,15 @@ def add_raster(path, name, crs='auto'):
     >>> A.geostats()
     '''
     import rasterio
+
+    if name in _builtin_measure_names:
+        raise ValueError(
+            f"'{name}' is a built-in measure name and cannot be overridden. "
+            "Choose a different name."
+        )
+
+    if crs not in ('wgs84', 'cea', 'auto'):
+        raise ValueError(f"crs must be 'wgs84', 'cea', or 'auto'; got {crs!r}")
 
     path = os.path.expanduser(os.path.abspath(path))
 
@@ -204,7 +230,34 @@ def add_raster(path, name, crs='auto'):
             probe = os.path.join(path, tifs[0])
         with rasterio.open(probe) as src:
             raster_crs = CRS.from_user_input(src.crs)
-        crs = 'wgs84' if raster_crs == wgs84 else 'cea'
+        if raster_crs == wgs84:
+            crs = 'wgs84'
+        elif raster_crs == cea:
+            crs = 'cea'
+        else:
+            raise ValueError(
+                f"CRS auto-detection: raster CRS is neither WGS84 (EPSG:4326) "
+                f"nor Lambert CEA (ESRI:54034). "
+                f"Detected: {raster_crs.to_string()}. "
+                "Pass crs='wgs84' or crs='cea' explicitly."
+            )
+    else:
+        # Still need to check for empty directory even when CRS is explicit
+        if not os.path.isfile(path):
+            tifs = sorted(f for f in os.listdir(path) if f.endswith('.tif'))
+            if not tifs:
+                raise ValueError(f"No .tif files found in {path}")
+
+    # Idempotency: same name + same params → no-op; different params → error
+    if name in _user_registered:
+        prev_path, prev_crs = _user_registered[name]
+        if prev_path == path and prev_crs == crs:
+            return  # identical re-registration is a no-op
+        raise ValueError(
+            f"'{name}' is already registered with different parameters "
+            f"(path={prev_path!r}, crs={prev_crs!r}). "
+            "Unregister it first or choose a different name."
+        )
 
     if os.path.isfile(path):
         _user_single_files[name] = os.path.basename(path)
@@ -215,14 +268,19 @@ def add_raster(path, name, crs='auto'):
         namemeasures[name] = -4
 
     if crs == 'wgs84':
-        wgs84_measures.append(name)
-        wgs84_measures.sort()
+        if name not in wgs84_measures:
+            wgs84_measures.append(name)
+            wgs84_measures.sort()
     else:
-        cea_measures.append(name)
-        cea_measures.sort()
+        if name not in cea_measures:
+            cea_measures.append(name)
+            cea_measures.sort()
 
-    main_measures.append(name)
-    main_measures.sort()
+    if name not in main_measures:
+        main_measures.append(name)
+        main_measures.sort()
+
+    _user_registered[name] = (path, crs)
 
 
 # Functions to perform various operations

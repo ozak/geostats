@@ -12,7 +12,7 @@ from shapely.geometry import box
 from geostats.main import (
     add_raster,
     pathmeasures, wgs84_measures, cea_measures, main_measures,
-    namemeasures, _user_single_files,
+    namemeasures, _user_single_files, _user_registered,
 )
 
 
@@ -88,6 +88,7 @@ def _cleanup(request):
             pathmeasures.pop(name, None)
             namemeasures.pop(name, None)
             _user_single_files.pop(name, None)
+            _user_registered.pop(name, None)
             for lst in (wgs84_measures, cea_measures, main_measures):
                 if name in lst:
                     lst.remove(name)
@@ -120,10 +121,10 @@ def test_single_file_namemeasures_sentinel_is_none(wgs84_tif):
     assert namemeasures['ndvi_test'] is None
 
 
-def test_non_wgs84_single_file_goes_to_cea_measures(non_wgs84_tif):
-    add_raster(non_wgs84_tif, name='rug_test')
-    assert 'rug_test' in cea_measures
-    assert 'rug_test' not in wgs84_measures
+def test_non_wgs84_non_cea_single_file_raises(non_wgs84_tif):
+    """Auto-detection must raise for CRS that is neither WGS84 nor CEA."""
+    with pytest.raises(ValueError, match='neither WGS84'):
+        add_raster(non_wgs84_tif, name='rug_test')
 
 
 def test_directory_goes_to_wgs84_measures(wgs84_tif_dir):
@@ -197,11 +198,77 @@ def test_directory_mean_matches_fill_values(wgs84_tif_dir, simple_gdf):
     assert G.df['precip_2001mean'].iloc[0] == pytest.approx(20.0, abs=0.01)
 
 
-def test_custom_and_builtin_measures_coexist(wgs84_tif, simple_gdf):
-    """A custom raster in the measures list shouldn't break built-in measure lookup."""
+def test_custom_and_builtin_measures_coexist(wgs84_tif, tmp_path, simple_gdf):
+    """Two custom rasters registered independently must both appear in output."""
     from geostats.main import geostats as GeoStats
+    # Create a second independent raster with a different fill value
+    second = tmp_path / 'albedo.tif'
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_bounds
+    transform = from_bounds(-20, -20, 20, 20, 40, 40)
+    with rasterio.open(
+        str(second), 'w', driver='GTiff',
+        height=40, width=40, count=1, dtype='float32',
+        crs='EPSG:4326', transform=transform,
+    ) as dst:
+        dst.write(np.full((40, 40), 9.0, dtype=np.float32), 1)
+
     add_raster(wgs84_tif, name='ndvi_test')
-    G = GeoStats(simple_gdf, measures=['ndvi_test'],
+    add_raster(str(second), name='albedo_test')
+
+    G = GeoStats(simple_gdf, measures=['ndvi_test', 'albedo_test'],
                  stats=['mean'], add_stats={}, adds=True)
     G.geostats()
     assert 'ndvi_testmean' in G.df.columns
+    assert 'albedo_testmean' in G.df.columns
+    assert G.df['ndvi_testmean'].iloc[0] == pytest.approx(5.0, abs=0.01)
+    assert G.df['albedo_testmean'].iloc[0] == pytest.approx(9.0, abs=0.01)
+
+
+# ---------------------------------------------------------------------------
+# Robustness tests
+# ---------------------------------------------------------------------------
+
+def test_builtin_name_collision_raises(wgs84_tif):
+    """Registering a name that matches a built-in measure must raise ValueError."""
+    with pytest.raises(ValueError, match="built-in measure"):
+        add_raster(wgs84_tif, name='Suitability')
+
+
+def test_invalid_crs_string_raises(wgs84_tif):
+    """Passing an unrecognised crs value must raise ValueError."""
+    with pytest.raises(ValueError, match="crs must be"):
+        add_raster(wgs84_tif, name='ndvi_test', crs='mercator')
+
+
+def test_double_registration_same_params_is_idempotent(wgs84_tif):
+    """Registering the same name + path + crs twice should be a no-op (no error)."""
+    add_raster(wgs84_tif, name='ndvi_test')
+    add_raster(wgs84_tif, name='ndvi_test')  # identical — must not raise
+    assert wgs84_measures.count('ndvi_test') == 1
+    assert main_measures.count('ndvi_test') == 1
+
+
+def test_double_registration_different_path_raises(wgs84_tif, tmp_path):
+    """Re-registering the same name with a different path must raise ValueError."""
+    other = tmp_path / 'other.tif'
+    _write_tif(str(other), epsg=4326, fill=1.0)
+    add_raster(wgs84_tif, name='ndvi_test')
+    with pytest.raises(ValueError, match="already registered"):
+        add_raster(str(other), name='ndvi_test')
+
+
+def test_double_registration_different_crs_raises(wgs84_tif):
+    """Re-registering the same name with a different crs must raise ValueError."""
+    add_raster(wgs84_tif, name='ndvi_test', crs='wgs84')
+    with pytest.raises(ValueError, match="already registered"):
+        add_raster(wgs84_tif, name='ndvi_test', crs='cea')
+
+
+def test_no_duplicate_in_measure_lists(wgs84_tif):
+    """Multiple add_raster calls with same args must not duplicate list entries."""
+    add_raster(wgs84_tif, name='ndvi_test')
+    add_raster(wgs84_tif, name='ndvi_test')
+    assert wgs84_measures.count('ndvi_test') == 1
+    assert main_measures.count('ndvi_test') == 1

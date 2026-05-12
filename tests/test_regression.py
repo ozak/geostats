@@ -20,7 +20,7 @@ import geopandas as gpd
 from geostats.main import (
     add_raster,
     pathmeasures, wgs84_measures, cea_measures, main_measures,
-    namemeasures, _user_single_files,
+    namemeasures, _user_single_files, _user_registered,
 )
 
 # ---------------------------------------------------------------------------
@@ -82,6 +82,7 @@ def _cleanup():
             pathmeasures.pop(name, None)
             namemeasures.pop(name, None)
             _user_single_files.pop(name, None)
+            _user_registered.pop(name, None)
             for lst in (wgs84_measures, cea_measures, main_measures):
                 if name in lst:
                     lst.remove(name)
