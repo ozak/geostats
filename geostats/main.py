@@ -122,8 +122,15 @@ noecodiv_measures = list(set(cea_measures).difference(set(ecodiv_measures)))
 noecodiv_measures.sort()
 
 # Identify how many characters need to be adjusted for correct name in each source
+# Frozen set of built-in measure names — prevents user registrations from
+# overwriting built-in registry entries.
+_builtin_measure_names = frozenset(main_measures)
+
 # Tracks single-file user-registered rasters: name -> basename
 _user_single_files = {}
+
+# Tracks registered custom rasters: name -> (path, crs) for idempotency checks
+_user_registered = {}
 
 namemeasures = {'Suitability' : -4,
                 'Suitability2' : -4,
@@ -169,6 +176,28 @@ namemeasures = {'Suitability' : -4,
                 'HLD' : 0,
                 }
 
+def _classify_raster_crs(filepath):
+    """
+    Open *filepath* and return 'wgs84' or 'cea'.
+
+    Raises ValueError if the raster's CRS is neither WGS84 (EPSG:4326) nor
+    Lambert CEA (ESRI:54034).  Both *wgs84* and *cea* are module-level CRS
+    objects resolved at call time.
+    """
+    import rasterio
+    with rasterio.open(filepath) as src:
+        r_crs = CRS.from_user_input(src.crs)
+    if r_crs == wgs84:
+        return 'wgs84'
+    if r_crs == cea:
+        return 'cea'
+    raise ValueError(
+        f"{os.path.basename(filepath)!r}: CRS {r_crs.to_string()!r} is "
+        "neither WGS84 (EPSG:4326) nor Lambert CEA (ESRI:54034). "
+        "Pass crs='wgs84' or crs='cea' to skip auto-detection."
+    )
+
+
 def add_raster(path, name, crs='auto'):
     '''
     Register a user-provided raster so it can be used in geostats like any
@@ -181,7 +210,19 @@ def add_raster(path, name, crs='auto'):
     name : str
         Measure name to use (becomes the column prefix in output).
     crs : str
-        'wgs84', 'cea', or 'auto' (detect from the raster file). Default 'auto'.
+        'wgs84', 'cea', or 'auto' (detect from the raster files). Default 'auto'.
+        When 'auto', every .tif in the path must be in exactly WGS84 (EPSG:4326)
+        or Lambert CEA (ESRI:54034) and all files must share the same CRS class.
+        When explicit, every .tif is verified to match the claimed class.
+
+    Raises
+    ------
+    ValueError
+        If name collides with a built-in measure, if crs is not one of the
+        accepted values, if no .tif files are found, if any file has an
+        unsupported CRS, if files in a directory mix WGS84 and CEA, if an
+        explicit crs claim does not match the actual raster CRS, or if the
+        same name is re-registered with different parameters.
 
     Example
     -------
@@ -190,21 +231,60 @@ def add_raster(path, name, crs='auto'):
     >>> A = geostats(shapefile, measures=['CSI', 'ndvi', 'Precip'])
     >>> A.geostats()
     '''
-    import rasterio
+    if name in _builtin_measure_names:
+        raise ValueError(
+            f"'{name}' is a built-in measure name and cannot be overridden. "
+            "Choose a different name."
+        )
+
+    if crs not in ('wgs84', 'cea', 'auto'):
+        raise ValueError(f"crs must be 'wgs84', 'cea', or 'auto'; got {crs!r}")
 
     path = os.path.expanduser(os.path.abspath(path))
 
+    # Collect all .tif files to validate
+    if os.path.isfile(path):
+        tif_paths = [path]
+    else:
+        tif_names = sorted(f for f in os.listdir(path) if f.endswith('.tif'))
+        if not tif_names:
+            raise ValueError(f"No .tif files found in {path}")
+        tif_paths = [os.path.join(path, f) for f in tif_names]
+
+    # Classify every file; raises immediately on any unsupported CRS
+    detected = [_classify_raster_crs(f) for f in tif_paths]
+
     if crs == 'auto':
-        if os.path.isfile(path):
-            probe = path
-        else:
-            tifs = sorted(f for f in os.listdir(path) if f.endswith('.tif'))
-            if not tifs:
-                raise ValueError(f"No .tif files found in {path}")
-            probe = os.path.join(path, tifs[0])
-        with rasterio.open(probe) as src:
-            raster_crs = CRS.from_user_input(src.crs)
-        crs = 'wgs84' if raster_crs == wgs84 else 'cea'
+        unique = set(detected)
+        if len(unique) > 1:
+            raise ValueError(
+                f"{path!r} contains a mix of WGS84 and CEA rasters. "
+                "All files must share the same CRS class. "
+                "Pass crs='wgs84' or crs='cea' explicitly if needed."
+            )
+        crs = unique.pop()
+    else:
+        # Explicit crs= — verify every file matches the claimed class
+        mismatches = [
+            tif_paths[i] for i, d in enumerate(detected) if d != crs
+        ]
+        if mismatches:
+            names = ', '.join(os.path.basename(f) for f in mismatches)
+            raise ValueError(
+                f"CRS mismatch: the following file(s) do not match "
+                f"crs={crs!r}: {names}"
+            )
+
+    # Idempotency: same name + same params → no-op; different params → error
+    if name in _user_registered:
+        prev_path, prev_crs = _user_registered[name]
+        if prev_path == path and prev_crs == crs:
+            return  # identical re-registration is a no-op
+        raise ValueError(
+            f"'{name}' is already registered with different parameters "
+            f"(path={prev_path!r}, crs={prev_crs!r}). "
+            "Unregister it first or choose a different name."
+        )
 
     if os.path.isfile(path):
         _user_single_files[name] = os.path.basename(path)
@@ -215,14 +295,19 @@ def add_raster(path, name, crs='auto'):
         namemeasures[name] = -4
 
     if crs == 'wgs84':
-        wgs84_measures.append(name)
-        wgs84_measures.sort()
+        if name not in wgs84_measures:
+            wgs84_measures.append(name)
+            wgs84_measures.sort()
     else:
-        cea_measures.append(name)
-        cea_measures.sort()
+        if name not in cea_measures:
+            cea_measures.append(name)
+            cea_measures.sort()
 
-    main_measures.append(name)
-    main_measures.sort()
+    if name not in main_measures:
+        main_measures.append(name)
+        main_measures.sort()
+
+    _user_registered[name] = (path, crs)
 
 
 # Functions to perform various operations
