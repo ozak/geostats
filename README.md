@@ -160,6 +160,10 @@ Example Usage: GeoStats
  out.to_csv(pathout + 'My-Stats.csv', encoding='utf-8', index=False)
 ``` 
 
+## Datasets for download
+
+* **Country-Level Statistics** [(Stata)](https://www.dropbox.com/scl/fi/9xwebzc0m0y6ahpf5oxa5/Country-Stats.dta?rlkey=6u49qs7oygfmarekpi8l3x6q2&st=hs75e9em&dl=0) [(CSV)](https://www.dropbox.com/scl/fi/7rxx0ggv8bfudcg7wg46p/Country-Stats.csv?rlkey=5vj2khksworpe4muofq99q333&dl=0)
+
 ## Citation
 
 If you use the package please cite:
